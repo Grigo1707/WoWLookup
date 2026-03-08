@@ -40,7 +40,10 @@ export async function GET(req: NextRequest) {
 
     if (!result.summary && !result.equipment) {
       return NextResponse.json(
-        { error: "Character not found. Please check the name, realm, and region." },
+        {
+          error: "Character not found. Please check the name, realm, and region.",
+          details: result.errors,
+        },
         { status: 404 }
       );
     }

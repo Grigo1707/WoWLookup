@@ -24,14 +24,14 @@ export const REALMS: Realm[] = [
   { name: "Sylvanas", slug: "sylvanas", region: "eu", namespace: "profile", type: "retail", typeLabel: "Retail" },
   { name: "Tarren Mill", slug: "tarren-mill", region: "eu", namespace: "profile", type: "retail", typeLabel: "Retail" },
   { name: "Twisting Nether", slug: "twisting-nether", region: "eu", namespace: "profile", type: "retail", typeLabel: "Retail" },
-  // EU Classic Era
+  // EU Classic Era (1x)
   { name: "Firemaw", slug: "firemaw", region: "eu", namespace: "profile-classic1x", type: "classic-era", typeLabel: "Classic Era" },
   { name: "Spineshatter", slug: "spineshatter", region: "eu", namespace: "profile-classic1x", type: "classic-era", typeLabel: "Classic Era" },
-  // EU TBC Anniversary
-  { name: "Thunderstrike", slug: "thunderstrike", region: "eu", namespace: "profile-classic-tbc", type: "classic-tbc", typeLabel: "TBC Anniversary" },
-  { name: "Crusader Strike", slug: "crusader-strike", region: "eu", namespace: "profile-classic-tbc", type: "classic-tbc", typeLabel: "TBC Anniversary" },
-  // EU WotLK
-  { name: "Atiesh", slug: "atiesh", region: "eu", namespace: "profile-classic-wrath", type: "classic-wotlk", typeLabel: "WotLK" },
+  // EU TBC Anniversary – namespace is "profile-classic" (confirmed working)
+  { name: "Thunderstrike", slug: "thunderstrike", region: "eu", namespace: "profile-classic", type: "classic-tbc", typeLabel: "TBC Anniversary" },
+  { name: "Crusader Strike", slug: "crusader-strike", region: "eu", namespace: "profile-classic", type: "classic-tbc", typeLabel: "TBC Anniversary" },
+  // EU WotLK Anniversary
+  { name: "Atiesh", slug: "atiesh", region: "eu", namespace: "profile-classic", type: "classic-wotlk", typeLabel: "WotLK Anniversary" },
   // US Retail
   { name: "Area 52", slug: "area-52", region: "us", namespace: "profile", type: "retail", typeLabel: "Retail" },
   { name: "Illidan", slug: "illidan", region: "us", namespace: "profile", type: "retail", typeLabel: "Retail" },
@@ -39,9 +39,11 @@ export const REALMS: Realm[] = [
   { name: "Stormrage", slug: "stormrage", region: "us", namespace: "profile", type: "retail", typeLabel: "Retail" },
   { name: "Tichondrius", slug: "tichondrius", region: "us", namespace: "profile", type: "retail", typeLabel: "Retail" },
   { name: "Thrall", slug: "thrall", region: "us", namespace: "profile", type: "retail", typeLabel: "Retail" },
-  // US Classic
+  // US Classic Era
   { name: "Faerlina", slug: "faerlina", region: "us", namespace: "profile-classic1x", type: "classic-era", typeLabel: "Classic Era" },
   { name: "Benediction", slug: "benediction", region: "us", namespace: "profile-classic1x", type: "classic-era", typeLabel: "Classic Era" },
+  // US TBC Anniversary
+  { name: "Crusader Strike", slug: "crusader-strike", region: "us", namespace: "profile-classic", type: "classic-tbc", typeLabel: "TBC Anniversary" },
 ];
 
 export const REGIONS = [

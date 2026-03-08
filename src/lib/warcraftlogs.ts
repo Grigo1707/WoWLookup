@@ -37,13 +37,11 @@ export interface WclCharacterData {
   name: string;
   classID: number;
   zoneRankings?: ZoneRankings;
-  recentPerformanceAvg?: number;
-  bestPerformanceAvg?: number;
 }
 
 export interface ZoneRankings {
-  bestPerformanceAvg: number | null;
-  medianPerformanceAvg: number | null;
+  bestPerformanceAverage: number | null;
+  medianPerformanceAverage: number | null;
   rankings: BossRanking[];
 }
 
@@ -70,11 +68,33 @@ const CHARACTER_QUERY = `
       character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
         name
         classID
-        zoneRankings(zoneID: $zoneID, metric: dps)
+        zoneRankings(zoneID: $zoneID)
       }
     }
   }
 `;
+
+const WCL_ENDPOINTS = [
+  "https://fresh.warcraftlogs.com/api/v2/client",
+  "https://www.warcraftlogs.com/api/v2/client",
+];
+
+async function queryWcl(endpoint: string, token: string, variables: object): Promise<WclCharacterData | null> {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query: CHARACTER_QUERY, variables }),
+    next: { revalidate: 300 },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  return data?.data?.characterData?.character || null;
+}
 
 export async function fetchWclCharacterData(
   characterName: string,
@@ -84,31 +104,14 @@ export async function fetchWclCharacterData(
 ): Promise<WclCharacterData | null> {
   try {
     const token = await getWclToken();
+    const variables = { name: characterName, serverSlug, serverRegion, zoneID };
 
-    const res = await fetch("https://www.warcraftlogs.com/api/v2/client", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: CHARACTER_QUERY,
-        variables: {
-          name: characterName,
-          serverSlug,
-          serverRegion,
-          zoneID,
-        },
-      }),
-      next: { revalidate: 300 },
-    });
-
-    if (!res.ok) {
-      return null;
+    for (const endpoint of WCL_ENDPOINTS) {
+      const result = await queryWcl(endpoint, token, variables);
+      if (result) return result;
     }
 
-    const data = await res.json();
-    return data?.data?.characterData?.character || null;
+    return null;
   } catch {
     return null;
   }

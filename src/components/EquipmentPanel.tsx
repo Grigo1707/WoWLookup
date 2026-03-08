@@ -56,7 +56,9 @@ function ItemRow({ item, slotType }: { item: EquippedItem | undefined; slotType:
               {item.name}
             </div>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-gray-400">iLvl {item.level?.value}</span>
+              {item.level?.value !== undefined && (
+                <span className="text-xs text-gray-400">iLvl {item.level.value}</span>
+              )}
               {item.enchantments && item.enchantments.length > 0 && (
                 <span className="text-xs text-teal-400">✦ Verzaubert</span>
               )}

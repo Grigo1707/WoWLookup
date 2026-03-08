@@ -100,7 +100,7 @@ export default function OverallScore({ summary, wclData }: Props) {
   const isRetail = !summary.realm?.slug?.includes("classic");
   const ilvlScore = getIlvlScore(ilvl, isRetail);
 
-  const bestPerf = wclData?.zoneRankings?.bestPerformanceAvg;
+  const bestPerf = wclData?.zoneRankings?.bestPerformanceAverage;
   const parseScore = bestPerf !== undefined && bestPerf !== null ? Math.round(bestPerf) : null;
   const parseColor = parseScore !== null ? getParseColor(parseScore) : "#9d9d9d";
 

@@ -69,8 +69,8 @@ export default function PerformancePanel({ wclData }: Props) {
     );
   }
 
-  const bestPerf = rankings.bestPerformanceAvg;
-  const medianPerf = rankings.medianPerformanceAvg;
+  const bestPerf = rankings.bestPerformanceAverage;
+  const medianPerf = rankings.medianPerformanceAverage;
   const bestColor = bestPerf !== null && bestPerf !== undefined ? getParseColor(bestPerf) : "#9d9d9d";
   const medianColor = medianPerf !== null && medianPerf !== undefined ? getParseColor(medianPerf) : "#9d9d9d";
 

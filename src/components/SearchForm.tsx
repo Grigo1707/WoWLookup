@@ -5,7 +5,7 @@ import { Search, ChevronDown } from "lucide-react";
 import { REGIONS, getRealmsByRegion } from "@/lib/realms";
 
 interface SearchFormProps {
-  onSearch: (region: string, realm: string, realmSlug: string, namespace: string, character: string) => void;
+  onSearch: (region: string, realm: string, realmSlug: string, namespace: string, character: string, realmType: string) => void;
   loading: boolean;
 }
 
@@ -13,6 +13,7 @@ export default function SearchForm({ onSearch, loading }: SearchFormProps) {
   const [region, setRegion] = useState("eu");
   const [realmSlug, setRealmSlug] = useState("");
   const [namespace, setNamespace] = useState("");
+  const [realmType, setRealmType] = useState("");
   const [character, setCharacter] = useState("");
   const [realmName, setRealmName] = useState("");
 
@@ -27,7 +28,7 @@ export default function SearchForm({ onSearch, loading }: SearchFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!realmSlug || !character.trim()) return;
-    onSearch(region, realmName, realmSlug, namespace, character.trim());
+    onSearch(region, realmName, realmSlug, namespace, character.trim(), realmType);
   };
 
   const handleRealmChange = (value: string) => {
@@ -35,6 +36,7 @@ export default function SearchForm({ onSearch, loading }: SearchFormProps) {
     const realm = realms.find((r) => r.slug === slug);
     setRealmSlug(slug);
     setNamespace(ns);
+    setRealmType(realm?.type || "");
     setRealmName(realm?.name || slug);
   };
 

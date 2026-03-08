@@ -21,20 +21,23 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CharacterData | null>(null);
+  const [realmType, setRealmType] = useState<string>("");
 
   const handleSearch = async (
     region: string,
     _realmName: string,
     realmSlug: string,
     namespace: string,
-    character: string
+    character: string,
+    selectedRealmType: string
   ) => {
     setLoading(true);
     setError(null);
     setData(null);
+    setRealmType(selectedRealmType);
 
     try {
-      const params = new URLSearchParams({ region, realm: realmSlug, namespace, character });
+      const params = new URLSearchParams({ region, realm: realmSlug, namespace, character, realmType: selectedRealmType });
       const res = await fetch(`/api/character?${params}`);
       const json = await res.json();
 
@@ -86,6 +89,7 @@ export default function HomePage() {
             <p className="text-red-300 text-sm">{error}</p>
           </div>
         )}
+
 
         {/* Results */}
         {data && data.summary && (

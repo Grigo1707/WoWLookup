@@ -29,7 +29,7 @@ interface Props {
 export default function CharacterHeader({ summary, wclData }: Props) {
   const classColor = CLASS_COLORS[summary.character_class?.name] || "#ffffff";
   const zoneRankings = wclData?.zoneRankings;
-  const bestPerf = zoneRankings?.bestPerformanceAvg;
+  const bestPerf = zoneRankings?.bestPerformanceAverage;
 
   const overallScore = bestPerf !== undefined && bestPerf !== null ? Math.round(bestPerf) : null;
   const parseColor = overallScore !== null ? getParseColor(overallScore) : "#9d9d9d";

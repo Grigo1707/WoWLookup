@@ -12,15 +12,17 @@ export interface CharacterHitStats {
   totalSpellHit: number;
   meleeHitCap: number;
   spellHitCap: number;
+  meleeHitCapPct: number;
+  spellHitCapPct: number;
 }
 
-// Hit rating needed per 1% hit chance
-export const HIT_CAPS: Record<string, { melee: number; spell: number }> = {
-  tbc:      { melee: 142,  spell: 202 },
-  wotlk:    { melee: 263,  spell: 446 },
-  classic:  { melee: 0,    spell: 0   }, // no hit rating in Classic Era
-  cata:     { melee: 961,  spell: 1742 },
-  mop:      { melee: 2550, spell: 5100 },
+// Hit rating needed for cap + cap percentage
+export const HIT_CAPS: Record<string, { melee: number; spell: number; meleePct: number; spellPct: number }> = {
+  tbc:     { melee: 142,  spell: 202,  meleePct: 9,  spellPct: 16 },
+  wotlk:   { melee: 263,  spell: 446,  meleePct: 8,  spellPct: 17 },
+  classic: { melee: 0,    spell: 0,    meleePct: 0,  spellPct: 0  }, // no hit rating in Classic Era
+  cata:    { melee: 961,  spell: 1742, meleePct: 8,  spellPct: 17 },
+  mop:     { melee: 2550, spell: 5100, meleePct: 15, spellPct: 15 },
 };
 
 export async function fetchWowheadItem(

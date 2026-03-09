@@ -56,6 +56,7 @@ export interface EquippedItem {
   quality: { type: string; name: string };
   level: { value: number; display_string: string };
   name: string;
+  inventory_type?: { type: string; name: string };
   enchantments?: Array<{ display_string: string }>;
   gems?: Array<{ item: { id: number; name: string } }>;
   sockets?: Array<{ socket_type?: { type: string }; item?: { id: number; name: string } }>;

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CharacterEquipment, EquippedItem } from "@/lib/blizzard";
-import { getItemQualityColor } from "@/lib/utils";
+import { getItemQualityColor, ENCHANTABLE_SLOTS } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -52,6 +52,8 @@ function GemIcon({ gemId, domain }: { gemId: number; domain: string }) {
 
 function ItemRow({ item, slotType, domain }: { item: EquippedItem | undefined; slotType: string; domain: string }) {
   const color = item ? getItemQualityColor(item.quality?.type || "COMMON") : "#374151";
+  const needsEnchant = item && ENCHANTABLE_SLOTS.has(slotType) && (!item.enchantments || item.enchantments.length === 0);
+  const missingGems = item?.sockets ? item.sockets.filter((s: { item?: unknown }) => !s.item).length : 0;
 
   return (
     <div className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-gray-800/40 transition-colors group">
@@ -98,17 +100,26 @@ function ItemRow({ item, slotType, domain }: { item: EquippedItem | undefined; s
             >
               {item.name}
             </a>
-            {item.enchantments && item.enchantments.length > 0 && (
+            {item.enchantments && item.enchantments.length > 0 ? (
               <div className="text-xs text-teal-400 truncate leading-tight">
                 {item.enchantments[0].display_string}
               </div>
-            )}
+            ) : needsEnchant ? (
+              <div className="text-xs text-red-400/80 leading-tight flex items-center gap-1">
+                <span>⚠</span> Kein Enchant
+              </div>
+            ) : null}
             {/* Gems */}
             {item.gems && item.gems.length > 0 && (
               <div className="flex gap-1 mt-0.5">
                 {item.gems.map((gem, i) => (
                   <GemIcon key={i} gemId={gem.item.id} domain={domain} />
                 ))}
+              </div>
+            )}
+            {missingGems > 0 && (
+              <div className="text-xs text-red-400/80 leading-tight flex items-center gap-1">
+                <span>⚠</span> {missingGems} leere{missingGems > 1 ? " Fassungen" : " Fassung"}
               </div>
             )}
             {item.level?.value !== undefined && (

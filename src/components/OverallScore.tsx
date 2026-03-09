@@ -1,12 +1,14 @@
 "use client";
 
-import { CharacterSummary } from "@/lib/blizzard";
+import { CharacterSummary, CharacterEquipment } from "@/lib/blizzard";
 import { WclCharacterData } from "@/lib/warcraftlogs";
-import { getParseColor, getParseLabel } from "@/lib/utils";
+import { getParseColor, getParseLabel, calculateGearscore } from "@/lib/utils";
 
 interface Props {
   summary: CharacterSummary;
   wclData: WclCharacterData | null;
+  realmType?: string;
+  equipment?: CharacterEquipment | null;
 }
 
 function ScoreRing({ score, maxScore = 100, color }: { score: number; maxScore?: number; color: string }) {
@@ -65,16 +67,18 @@ function RatingCard({
   );
 }
 
-function getIlvlScore(ilvl: number, isRetail: boolean): number {
-  if (isRetail) {
-    const min = 400;
-    const max = 700;
-    return Math.min(100, Math.max(0, Math.round(((ilvl - min) / (max - min)) * 100)));
-  } else {
-    const min = 50;
-    const max = 300;
-    return Math.min(100, Math.max(0, Math.round(((ilvl - min) / (max - min)) * 100)));
-  }
+const ILVL_RANGES: Record<string, [number, number]> = {
+  retail:        [400, 700],
+  "classic-era": [1,   90],
+  "classic-tbc": [85,  120],
+  "classic-wotlk":[187, 277],
+  "classic-cata": [277, 410],
+  "classic-mop":  [450, 553],
+};
+
+function getIlvlScore(ilvl: number, realmType: string): number {
+  const [min, max] = ILVL_RANGES[realmType] ?? ILVL_RANGES["retail"];
+  return Math.min(100, Math.max(0, Math.round(((ilvl - min) / (max - min)) * 100)));
 }
 
 function getOverallRating(ilvlScore: number, parseScore: number | null): { score: number; label: string; color: string } {
@@ -95,12 +99,21 @@ function getOverallRating(ilvlScore: number, parseScore: number | null): { score
   };
 }
 
-export default function OverallScore({ summary, wclData }: Props) {
+export default function OverallScore({ summary, wclData, realmType = "retail", equipment }: Props) {
   const ilvl = summary.equipped_item_level || 0;
-  const isRetail = !summary.realm?.slug?.includes("classic");
-  const ilvlScore = getIlvlScore(ilvl, isRetail);
+  const ilvlScore = getIlvlScore(ilvl, realmType || "retail");
+  const gearscore = equipment ? calculateGearscore(equipment) : null;
 
-  const bestPerf = wclData?.zoneRankings?.bestPerformanceAverage;
+  // Use average across all zones if available, otherwise fall back to single zone
+  let bestPerf: number | null | undefined;
+  if (wclData?.allZoneRankings && wclData.allZoneRankings.length > 0) {
+    const values = wclData.allZoneRankings
+      .map((z) => z.rankings.bestPerformanceAverage)
+      .filter((v): v is number => v !== null && v !== undefined);
+    bestPerf = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  } else {
+    bestPerf = wclData?.zoneRankings?.bestPerformanceAverage;
+  }
   const parseScore = bestPerf !== undefined && bestPerf !== null ? Math.round(bestPerf) : null;
   const parseColor = parseScore !== null ? getParseColor(parseScore) : "#9d9d9d";
 
@@ -152,6 +165,22 @@ export default function OverallScore({ summary, wclData }: Props) {
           </p>
         </div>
       </div>
+
+      {gearscore && (gearscore.missingEnchants.length > 0 || gearscore.missingGems.length > 0) && (
+        <div className="mt-3 p-3 bg-red-900/10 border border-red-500/20 rounded-lg">
+          <p className="text-xs text-red-400 font-medium mb-1">Ausrüstungs-Warnungen</p>
+          {gearscore.missingEnchants.length > 0 && (
+            <p className="text-xs text-red-300/70">
+              ⚠ {gearscore.missingEnchants.length} Slot{gearscore.missingEnchants.length > 1 ? "s" : ""} ohne Enchant
+            </p>
+          )}
+          {gearscore.missingGems.length > 0 && (
+            <p className="text-xs text-red-300/70">
+              ⚠ {gearscore.missingGems.length} Slot{gearscore.missingGems.length > 1 ? "s" : ""} mit leeren Fassungen
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

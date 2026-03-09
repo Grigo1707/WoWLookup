@@ -33,10 +33,17 @@ async function getWclToken(): Promise<string> {
   return wclToken.token;
 }
 
+export interface ZoneRankingsEntry {
+  zoneID: number;
+  zoneName: string;
+  rankings: ZoneRankings;
+}
+
 export interface WclCharacterData {
   name: string;
   classID: number;
   zoneRankings?: ZoneRankings;
+  allZoneRankings?: ZoneRankingsEntry[];
 }
 
 export interface ZoneRankings {
@@ -63,12 +70,12 @@ export interface BossRanking {
 }
 
 const CHARACTER_QUERY = `
-  query CharacterRankings($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int) {
+  query CharacterRankings($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int, $metric: CharacterRankingMetricType) {
     characterData {
       character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
         name
         classID
-        zoneRankings(zoneID: $zoneID)
+        zoneRankings(zoneID: $zoneID, metric: $metric)
       }
     }
   }
@@ -78,6 +85,8 @@ const WCL_ENDPOINTS = [
   "https://fresh.warcraftlogs.com/api/v2/client",
   "https://www.warcraftlogs.com/api/v2/client",
 ];
+
+export type WclMetric = "dps" | "hps" | "bossdps" | "tankhps";
 
 async function queryWcl(endpoint: string, token: string, variables: object): Promise<WclCharacterData | null> {
   const res = await fetch(endpoint, {
@@ -100,18 +109,60 @@ export async function fetchWclCharacterData(
   characterName: string,
   serverSlug: string,
   serverRegion: string,
-  zoneID?: number
+  zoneIDs?: number[],
+  zoneNames?: Record<number, string>,
+  metric?: WclMetric
 ): Promise<WclCharacterData | null> {
   try {
     const token = await getWclToken();
-    const variables = { name: characterName, serverSlug, serverRegion, zoneID };
+
+    // Single zone or no zone: original behavior
+    const firstZoneID = zoneIDs?.[0];
+    let baseCharacter: WclCharacterData | null = null;
 
     for (const endpoint of WCL_ENDPOINTS) {
-      const result = await queryWcl(endpoint, token, variables);
-      if (result) return result;
+      const result = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: firstZoneID, metric });
+      if (result) { baseCharacter = result; break; }
     }
 
-    return null;
+    if (!baseCharacter) return null;
+
+    // Fetch additional zones in parallel
+    if (zoneIDs && zoneIDs.length > 1) {
+      const additionalZoneIDs = zoneIDs.slice(1);
+      const additionalResults = await Promise.all(
+        additionalZoneIDs.map(async (zid) => {
+          for (const endpoint of WCL_ENDPOINTS) {
+            const r = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: zid, metric });
+            if (r?.zoneRankings) return { zoneID: zid, rankings: r.zoneRankings as ZoneRankings };
+          }
+          return null;
+        })
+      );
+
+      const allZoneRankings: ZoneRankingsEntry[] = [];
+      if (baseCharacter.zoneRankings) {
+        allZoneRankings.push({
+          zoneID: firstZoneID!,
+          zoneName: zoneNames?.[firstZoneID!] ?? `Zone ${firstZoneID}`,
+          rankings: baseCharacter.zoneRankings as ZoneRankings,
+        });
+      }
+      for (const r of additionalResults) {
+        if (r) {
+          allZoneRankings.push({
+            zoneID: r.zoneID,
+            zoneName: zoneNames?.[r.zoneID] ?? `Zone ${r.zoneID}`,
+            rankings: r.rankings,
+          });
+        }
+      }
+      if (allZoneRankings.length > 0) {
+        baseCharacter.allZoneRankings = allZoneRankings;
+      }
+    }
+
+    return baseCharacter;
   } catch {
     return null;
   }

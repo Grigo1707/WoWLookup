@@ -58,6 +58,7 @@ export interface EquippedItem {
   name: string;
   enchantments?: Array<{ display_string: string }>;
   gems?: Array<{ item: { id: number; name: string } }>;
+  sockets?: Array<{ socket_type?: { type: string }; item?: { id: number; name: string } }>;
 }
 
 export interface CharacterSpecializations {

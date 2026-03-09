@@ -1,13 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { AlertCircle, X, GitCompare } from "lucide-react";
 import SearchForm from "@/components/SearchForm";
 import CharacterHeader from "@/components/CharacterHeader";
 import EquipmentPanel from "@/components/EquipmentPanel";
 import TalentsPanel from "@/components/TalentsPanel";
 import PerformancePanel from "@/components/PerformancePanel";
 import OverallScore from "@/components/OverallScore";
+import RecentCharacters, {
+  RecentCharacter,
+  loadRecentCharacters,
+  saveRecentCharacter,
+  removeRecentCharacter,
+  clearRecentCharacters,
+} from "@/components/RecentCharacters";
 
 interface CharacterData {
   summary: import("@/lib/blizzard").CharacterSummary | null;
@@ -18,24 +27,71 @@ interface CharacterData {
   errors: Record<string, string | null>;
 }
 
-export default function HomePage() {
+const WOWHEAD_DOMAINS: Record<string, string> = {
+  "classic-tbc": "tbc",
+  "classic-wotlk": "wotlk",
+  "classic-era": "classic",
+  "classic-cata": "cata",
+  "classic-mop": "mop",
+};
+
+function getErrorMessage(errorText: string, realmType: string): string {
+  const lower = errorText.toLowerCase();
+  if (lower.includes("404") || lower.includes("not found") || lower.includes("character not found")) {
+    if (realmType === "classic-tbc" || realmType === "classic-wotlk") {
+      return "Charakter nicht gefunden. TBC/WotLK Anniversary Realms haben bekannte API-Einschränkungen – prüfe Name, Server und Region.";
+    }
+    return "Charakter nicht gefunden. Bitte prüfe Name, Server und Region.";
+  }
+  if (lower.includes("rate limit") || lower.includes("429")) {
+    return "API Rate Limit erreicht. Bitte warte kurz und versuche es erneut.";
+  }
+  if (lower.includes("network") || lower.includes("fetch")) {
+    return "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.";
+  }
+  return errorText;
+}
+
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 6000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-red-900/90 border border-red-500/50 rounded-xl px-4 py-3 flex items-start gap-3 shadow-2xl max-w-md">
+        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+        <p className="text-red-200 text-sm flex-1">{message}</p>
+        <button onClick={onClose} className="text-red-400 hover:text-red-200">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CharacterData | null>(null);
   const [realmType, setRealmType] = useState<string>("");
+  const [lastSearch, setLastSearch] = useState<{ region: string; realm: string; character: string } | null>(null);
+  const [recentChars, setRecentChars] = useState<RecentCharacter[]>([]);
 
-  const WOWHEAD_DOMAINS: Record<string, string> = {
-    "classic-tbc": "tbc",
-    "classic-wotlk": "wotlk",
-    "classic-era": "classic",
-    "classic-cata": "cata",
-    "classic-mop": "mop",
-  };
+  // Load recent characters from localStorage on mount
+  useEffect(() => {
+    setRecentChars(loadRecentCharacters());
+  }, []);
+
   const wowheadDomain = WOWHEAD_DOMAINS[realmType] || "";
 
-  const handleSearch = async (
+  const doSearch = useCallback(async (
     region: string,
-    _realmName: string,
+    realmName: string,
     realmSlug: string,
     namespace: string,
     character: string,
@@ -45,23 +101,74 @@ export default function HomePage() {
     setError(null);
     setData(null);
     setRealmType(selectedRealmType);
+    setLastSearch({ region, realm: realmSlug, character });
+
+    // Update URL for sharing/deep linking
+    const params = new URLSearchParams({ region, realm: realmSlug, namespace, character, realmType: selectedRealmType });
+    router.push(`?${params.toString()}`, { scroll: false });
 
     try {
-      const params = new URLSearchParams({ region, realm: realmSlug, namespace, character, realmType: selectedRealmType });
       const res = await fetch(`/api/character?${params}`);
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error || "Fehler beim Laden des Charakters.");
+        const rawError = json.error || "Fehler beim Laden des Charakters.";
+        setError(getErrorMessage(rawError, selectedRealmType));
         return;
       }
 
       setData(json);
+
+      // Save to recent characters
+      const entry: Omit<RecentCharacter, "timestamp"> = {
+        region,
+        realm: realmName,
+        realmSlug,
+        namespace,
+        character,
+        realmType: selectedRealmType,
+        characterClass: json.summary?.character_class?.name,
+        level: json.summary?.level,
+      };
+      saveRecentCharacter(entry);
+      setRecentChars(loadRecentCharacters());
     } catch {
       setError("Netzwerkfehler. Bitte versuche es erneut.");
     } finally {
       setLoading(false);
     }
+  }, [router]);
+
+  // Auto-search from URL params on initial load
+  const [autoSearched, setAutoSearched] = useState(false);
+  useEffect(() => {
+    if (autoSearched) return;
+    const region = searchParams.get("region");
+    const realmSlug = searchParams.get("realm");
+    const namespace = searchParams.get("namespace");
+    const character = searchParams.get("character");
+    const urlRealmType = searchParams.get("realmType");
+
+    if (region && realmSlug && namespace && character && urlRealmType) {
+      setAutoSearched(true);
+      doSearch(region, realmSlug, realmSlug, namespace, character, urlRealmType);
+    } else {
+      setAutoSearched(true);
+    }
+  }, [searchParams, doSearch, autoSearched]);
+
+  const handleRecentSelect = (char: RecentCharacter) => {
+    doSearch(char.region, char.realm, char.realmSlug, char.namespace, char.character, char.realmType);
+  };
+
+  const handleRecentRemove = (char: RecentCharacter) => {
+    removeRecentCharacter(char);
+    setRecentChars(loadRecentCharacters());
+  };
+
+  const handleClearAll = () => {
+    clearRecentCharacters();
+    setRecentChars([]);
   };
 
   return (
@@ -87,25 +194,27 @@ export default function HomePage() {
           <p className="text-gray-400 text-sm max-w-md mx-auto">
             Auf einen Blick Ausrüstung, Talente und Performance-Wertung von World of Warcraft Charakteren prüfen.
           </p>
+          <Link href="/compare" className="inline-flex items-center gap-1.5 mt-3 text-xs text-gray-500 hover:text-amber-400 transition-colors">
+            <GitCompare className="w-3.5 h-3.5" /> Charaktere vergleichen
+          </Link>
         </header>
 
         {/* Search */}
-        <SearchForm onSearch={handleSearch} loading={loading} />
+        <SearchForm onSearch={doSearch} loading={loading} />
 
-        {/* Error */}
-        {error && (
-          <div className="mt-6 max-w-2xl mx-auto bg-red-900/20 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-red-300 text-sm">{error}</p>
-          </div>
-        )}
-
+        {/* Recently viewed */}
+        <RecentCharacters
+          characters={recentChars}
+          onSelect={handleRecentSelect}
+          onRemove={handleRecentRemove}
+          onClearAll={handleClearAll}
+        />
 
         {/* Results */}
         {data && data.summary && (
           <div className="mt-8 space-y-4">
             <CharacterHeader summary={data.summary} wclData={data.wclData} />
-            <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} />
+            <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} equipment={data.equipment} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {data.equipment && <EquipmentPanel equipment={data.equipment} wowheadDomain={wowheadDomain} />}
@@ -120,7 +229,13 @@ export default function HomePage() {
             </div>
 
             {data.wclData ? (
-              <PerformancePanel wclData={data.wclData} />
+              <PerformancePanel
+                wclData={data.wclData}
+                realmType={realmType}
+                region={lastSearch?.region}
+                realm={lastSearch?.realm}
+                character={lastSearch?.character}
+              />
             ) : (
               <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-5">
                 <h2 className="text-amber-400 font-bold text-base uppercase tracking-wider mb-2">Performance</h2>
@@ -154,6 +269,21 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Toast error notification */}
+      {error && <Toast message={error} onClose={() => setError(null)} />}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-amber-400 text-xl">Laden...</div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

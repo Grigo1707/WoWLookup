@@ -40,11 +40,19 @@ export async function GET(req: NextRequest) {
       specializationsPromise = fetchCharacterSpecializations(region, realm, character, namespace);
     }
 
+    const WCL_ZONES: Record<string, { ids: number[]; names: Record<number, string> }> = {
+      "classic-tbc": {
+        ids: [1047, 1048],
+        names: { 1047: "Karazhan", 1048: "Gruul & Magtheridon" },
+      },
+    };
+    const wclZoneConfig = WCL_ZONES[realmType];
+
     const [summary, equipment, specializations, wclData] = await Promise.allSettled([
       summaryPromise,
       equipmentPromise,
       specializationsPromise,
-      fetchWclCharacterData(character, realm, region),
+      fetchWclCharacterData(character, realm, region, wclZoneConfig?.ids, wclZoneConfig?.names),
     ]);
 
     // For classic-armory, fetch the full talent tree using the class_id from summary

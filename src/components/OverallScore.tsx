@@ -9,6 +9,7 @@ interface Props {
   wclData: WclCharacterData | null;
   realmType?: string;
   equipment?: CharacterEquipment | null;
+  characterStats?: import("@/lib/wowhead-items").CharacterHitStats | null;
 }
 
 function ScoreRing({ score, maxScore = 100, color }: { score: number; maxScore?: number; color: string }) {
@@ -67,6 +68,25 @@ function RatingCard({
   );
 }
 
+function HitBar({ label, current, cap }: { label: string; current: number; cap: number }) {
+  const reached = current >= cap;
+  const pct = Math.min(100, Math.round((current / cap) * 100));
+  const color = reached ? "#1eff00" : current >= cap * 0.8 ? "#ff8800" : "#ff4444";
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-gray-400">{label}</span>
+        <span style={{ color }} className="font-bold">
+          {current} / {cap}{reached ? " ✓" : ""}
+        </span>
+      </div>
+      <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
 const ILVL_RANGES: Record<string, [number, number]> = {
   retail:        [400, 700],
   "classic-era": [1,   90],
@@ -100,7 +120,7 @@ function getOverallRating(ilvlScore: number, parseScore: number | null, gearQual
   };
 }
 
-export default function OverallScore({ summary, wclData, realmType = "retail", equipment }: Props) {
+export default function OverallScore({ summary, wclData, realmType = "retail", equipment, characterStats }: Props) {
   const ilvl = summary.equipped_item_level || 0;
   const ilvlScore = getIlvlScore(ilvl, realmType || "retail");
   const gearscore = equipment ? calculateGearscore(equipment, realmType) : null;
@@ -191,6 +211,24 @@ export default function OverallScore({ summary, wclData, realmType = "retail", e
             <p className="text-xs text-red-300/70">
               ⚠ {gearscore.missingGems.length} Slot{gearscore.missingGems.length > 1 ? "s" : ""} mit leeren Fassungen
             </p>
+          )}
+        </div>
+      )}
+
+      {characterStats && characterStats.meleeHitCap > 0 && (
+        <div className="mt-3 p-3 bg-gray-800/40 border border-amber-500/10 rounded-lg space-y-2">
+          <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">Hit Cap</p>
+          <HitBar
+            label="Nahkampf"
+            current={characterStats.totalHit}
+            cap={characterStats.meleeHitCap}
+          />
+          {characterStats.spellHitCap > 0 && (
+            <HitBar
+              label="Zauber"
+              current={characterStats.totalSpellHit}
+              cap={characterStats.spellHitCap}
+            />
           )}
         </div>
       )}

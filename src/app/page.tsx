@@ -24,6 +24,7 @@ interface CharacterData {
   specializations: import("@/lib/blizzard").CharacterSpecializations | null;
   talentTree: import("@/lib/classicarmory").TBCTalentTree | null;
   wclData: import("@/lib/warcraftlogs").WclCharacterData | null;
+  characterStats?: import("@/lib/wowhead-items").CharacterHitStats | null;
   errors: Record<string, string | null>;
 }
 
@@ -214,7 +215,7 @@ function HomeContent() {
         {data && data.summary && (
           <div className="mt-8 space-y-4">
             <CharacterHeader summary={data.summary} wclData={data.wclData} />
-            <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} equipment={data.equipment} />
+            <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} equipment={data.equipment} characterStats={data.characterStats} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {data.equipment && <EquipmentPanel equipment={data.equipment} wowheadDomain={wowheadDomain} realmType={realmType} />}

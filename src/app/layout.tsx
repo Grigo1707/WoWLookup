@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <Script id="wowhead-config" strategy="beforeInteractive">{`
+          const whTooltips = { colorLinks: true, iconSize: 'medium', rename: true };
+        `}</Script>
+        <Script src="https://wow.zamimg.com/widgets/power.js" strategy="afterInteractive" />
+      </body>
     </html>
   );
 }

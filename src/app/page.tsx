@@ -24,6 +24,15 @@ export default function HomePage() {
   const [data, setData] = useState<CharacterData | null>(null);
   const [realmType, setRealmType] = useState<string>("");
 
+  const WOWHEAD_DOMAINS: Record<string, string> = {
+    "classic-tbc": "tbc",
+    "classic-wotlk": "wotlk",
+    "classic-era": "classic",
+    "classic-cata": "cata",
+    "classic-mop": "mop",
+  };
+  const wowheadDomain = WOWHEAD_DOMAINS[realmType] || "";
+
   const handleSearch = async (
     region: string,
     _realmName: string,
@@ -99,9 +108,9 @@ export default function HomePage() {
             <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {data.equipment && <EquipmentPanel equipment={data.equipment} />}
+              {data.equipment && <EquipmentPanel equipment={data.equipment} wowheadDomain={wowheadDomain} />}
               {(data.specializations || data.talentTree) ? (
-                <TalentsPanel specializations={data.specializations} talentTree={data.talentTree ?? null} />
+                <TalentsPanel specializations={data.specializations} talentTree={data.talentTree ?? null} wowheadDomain={wowheadDomain} />
               ) : (
                 <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-5">
                   <h2 className="text-amber-400 font-bold text-base uppercase tracking-wider mb-4">Talente</h2>

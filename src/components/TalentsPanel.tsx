@@ -1,7 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { CharacterSpecializations } from "@/lib/blizzard";
 import { TBCTalentTree, TBCTalentNode } from "@/lib/classicarmory";
+
+declare global {
+  interface Window {
+    WH?: { Tooltips?: { refreshLinks?: () => void } };
+  }
+}
+
+function wowheadAttr(spellId: number, domain: string) {
+  return domain ? `spell=${spellId}&domain=${domain}` : `spell=${spellId}`;
+}
 
 // Tree background gradients matching the classic WoW themes
 const TREE_BACKGROUNDS: Record<number, string> = {
@@ -19,7 +30,7 @@ const TREE_ACCENT: Record<number, string> = {
 const COLS = 4;
 const ROWS = 9;
 
-function TalentIcon({ node }: { node: TBCTalentNode | null; }) {
+function TalentIcon({ node, domain }: { node: TBCTalentNode | null; domain: string }) {
   if (!node) {
     return <div className="w-10 h-10" />;
   }
@@ -27,30 +38,36 @@ function TalentIcon({ node }: { node: TBCTalentNode | null; }) {
   const invested = node.currentRank > 0;
 
   return (
-    <div className="relative group cursor-default">
-      <div
-        className="w-10 h-10 rounded overflow-hidden border-2 transition-all"
-        style={{
-          borderColor: invested ? "#c9a227" : "#3a3a4a",
-          boxShadow: invested ? "0 0 6px #c9a22760" : "none",
-          filter: invested ? "none" : "grayscale(0.85) brightness(0.5)",
-        }}
+    <div className="relative">
+      <a
+        href={`https://www.wowhead.com/spell=${node.spellId}`}
+        data-wowhead={wowheadAttr(node.spellId, domain)}
+        onClick={(e) => e.preventDefault()}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/api/icon?type=spell&id=${node.spellId}`}
-          alt=""
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
+        <div
+          className="w-10 h-10 rounded overflow-hidden border-2 transition-all"
+          style={{
+            borderColor: invested ? "#c9a227" : "#3a3a4a",
+            boxShadow: invested ? "0 0 6px #c9a22760" : "none",
+            filter: invested ? "none" : "grayscale(0.85) brightness(0.5)",
           }}
-        />
-      </div>
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/icon?type=spell&id=${node.spellId}`}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://wow.zamimg.com/images/wow/icons/large/inv_misc_questionmark.jpg";
+            }}
+          />
+        </div>
+      </a>
       {/* Rank badge */}
       <div
-        className="absolute -bottom-1 -right-1 text-[10px] font-bold leading-none px-1 py-0.5 rounded"
+        className="absolute -bottom-1 -right-1 text-[10px] font-bold leading-none px-1 py-0.5 rounded pointer-events-none"
         style={{
           backgroundColor: invested ? "#c9a227" : "#2a2a3a",
           color: invested ? "#000" : "#666",
@@ -63,7 +80,7 @@ function TalentIcon({ node }: { node: TBCTalentNode | null; }) {
   );
 }
 
-function TalentTreeTab({ tab, index }: { tab: TBCTalentTree["tabs"][0]; index: number }) {
+function TalentTreeTab({ tab, index, domain }: { tab: TBCTalentTree["tabs"][0]; index: number; domain: string }) {
   // Build grid: rows × cols
   const grid: (TBCTalentNode | null)[][] = Array.from({ length: ROWS }, () =>
     Array(COLS).fill(null)
@@ -118,7 +135,7 @@ function TalentTreeTab({ tab, index }: { tab: TBCTalentTree["tabs"][0]; index: n
           return (
             <div key={rIdx} className="flex gap-1 justify-center mb-1">
               {row.map((node, cIdx) => (
-                <TalentIcon key={cIdx} node={node} />
+                <TalentIcon key={cIdx} node={node} domain={domain} />
               ))}
             </div>
           );
@@ -231,9 +248,16 @@ function RetailTalentsDisplay({ specializations }: { specializations: CharacterS
 interface Props {
   specializations: CharacterSpecializations | null;
   talentTree: TBCTalentTree | null;
+  wowheadDomain: string;
 }
 
-export default function TalentsPanel({ specializations, talentTree }: Props) {
+export default function TalentsPanel({ specializations, talentTree, wowheadDomain }: Props) {
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.WH?.Tooltips?.refreshLinks) {
+      window.WH.Tooltips.refreshLinks();
+    }
+  });
+
   return (
     <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-5 shadow-xl">
       <h2 className="text-amber-400 font-bold text-base uppercase tracking-wider mb-4">Talente</h2>
@@ -241,7 +265,7 @@ export default function TalentsPanel({ specializations, talentTree }: Props) {
       {talentTree ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {talentTree.tabs.map((tab, i) => (
-            <TalentTreeTab key={i} tab={tab} index={i} />
+            <TalentTreeTab key={i} tab={tab} index={i} domain={wowheadDomain} />
           ))}
         </div>
       ) : specializations ? (

@@ -170,6 +170,13 @@ export default function PerformancePanel({ wclData, realmType, region, realm, ch
     setLoadingMetric(true);
     try {
       const params = new URLSearchParams({ character, realm, region, metric: newMetric });
+      // Pass all zone IDs so the API can return allZoneRankings
+      if (displayData.allZoneRankings && displayData.allZoneRankings.length > 0) {
+        const zoneIDs = displayData.allZoneRankings.map((z) => z.zoneID).join(",");
+        const zoneNames = displayData.allZoneRankings.map((z) => `${z.zoneID}:${z.zoneName}`).join(",");
+        params.set("zoneIDs", zoneIDs);
+        params.set("zoneNames", zoneNames);
+      }
       const res = await fetch(`/api/wcl?${params}`);
       if (res.ok) {
         const data = await res.json();

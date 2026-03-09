@@ -8,12 +8,31 @@ export async function GET(req: NextRequest) {
   const region = searchParams.get("region") || "eu";
   const metric = (searchParams.get("metric") || undefined) as WclMetric | undefined;
   const zoneID = searchParams.get("zoneID") ? Number(searchParams.get("zoneID")) : undefined;
+  const zoneIDsParam = searchParams.get("zoneIDs");
+  const zoneNamesParam = searchParams.get("zoneNames");
 
   if (!character || !realm) {
     return NextResponse.json({ error: "Missing character or realm" }, { status: 400 });
   }
 
-  const data = await fetchWclCharacterData(character, realm, region, zoneID ? [zoneID] : undefined, undefined, metric);
+  let zoneIDs: number[] | undefined;
+  let zoneNamesMap: Record<number, string> | undefined;
+
+  if (zoneIDsParam) {
+    zoneIDs = zoneIDsParam.split(",").map(Number).filter(Boolean);
+    if (zoneNamesParam) {
+      zoneNamesMap = Object.fromEntries(
+        zoneNamesParam.split(",").map((entry) => {
+          const [id, ...nameParts] = entry.split(":");
+          return [Number(id), nameParts.join(":")];
+        })
+      );
+    }
+  } else if (zoneID) {
+    zoneIDs = [zoneID];
+  }
+
+  const data = await fetchWclCharacterData(character, realm, region, zoneIDs, zoneNamesMap, metric);
   if (!data) {
     return NextResponse.json({ error: "No WCL data found" }, { status: 404 });
   }

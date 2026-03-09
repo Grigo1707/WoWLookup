@@ -52,10 +52,8 @@ function GemIcon({ gemId, domain }: { gemId: number; domain: string }) {
 
 function ItemRow({ item, slotType, domain, realmType }: { item: EquippedItem | undefined; slotType: string; domain: string; realmType?: string }) {
   const color = item ? getItemQualityColor(item.quality?.type || "COMMON") : "#374151";
-  // OFF_HAND: only weapons (TWO_HAND weapon held in off-hand counts, but "HOLDABLE" and "SHIELD" cannot be enchanted)
-  const offHandEnchantable = slotType !== "OFF_HAND" || (
-    item?.inventory_type?.type !== "HOLDABLE" && item?.inventory_type?.type !== "SHIELD"
-  );
+  // OFF_HAND: "HOLDABLE" (Held in Offhand) cannot be enchanted, but shields and weapons can
+  const offHandEnchantable = slotType !== "OFF_HAND" || item?.inventory_type?.type !== "HOLDABLE";
   const needsEnchant = item && getEnchantableSlots(realmType).has(slotType) && offHandEnchantable && (!item.enchantments || item.enchantments.length === 0);
   const missingGems = item?.sockets ? item.sockets.filter((s: { item?: unknown }) => !s.item).length : 0;
 

@@ -33,7 +33,8 @@
       "Bash(tail -c 2000 ~/.claude/projects/c--WoWLookup/*.jsonl)",
       "Bash(node --check .claude/scripts/requirements-agent.mjs)",
       "Bash(node --check .claude/scripts/auto-commit.mjs)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:www.wowhead.com)"
     ]
   },
   "hooks": {

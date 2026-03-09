@@ -38,12 +38,6 @@ function hasSensitiveFiles(files) {
 }
 
 function buildCommitMessage(sessionId, tracking) {
-  // Get diff summary for message body
-  let diffStat = "";
-  try {
-    diffStat = run("git diff --cached --stat --no-color").split("\n").slice(-1)[0] || "";
-  } catch { }
-
   // Get last prompt from transcript to craft message prefix
   const transcriptPath = sessionId
     ? path.join(os.homedir(), ".claude", "projects", "c--WoWLookup", `${sessionId}.jsonl`)
@@ -81,11 +75,27 @@ function buildCommitMessage(sessionId, tracking) {
     ? `${prefix}: ${lastPrompt.slice(0, 65)}`
     : `${prefix}: auto-commit changes`;
 
+  // Changed files for commit body
+  let changedFiles = "";
+  try {
+    const files = run("git diff --cached --name-only").split("\n").filter(Boolean);
+    if (files.length > 0) {
+      changedFiles = "\n\nGeaenderte Dateien:\n" + files.map(f => `- ${f}`).join("\n");
+    }
+  } catch { }
+
+  // Diff stat summary
+  let fullDiffStat = "";
+  try {
+    const stat = run("git diff --cached --stat --no-color");
+    if (stat) fullDiffStat = "\n\n" + stat;
+  } catch { }
+
   // Issue reference
   const sessionData = sessionId ? tracking[sessionId] : null;
   const issueRef = sessionData?.issueNumber ? `\n\nCloses #${sessionData.issueNumber}` : "";
 
-  return `${subject}${issueRef}`;
+  return `${subject}${changedFiles}${fullDiffStat}${issueRef}`;
 }
 
 async function main() {

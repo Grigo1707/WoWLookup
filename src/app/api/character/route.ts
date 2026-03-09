@@ -100,13 +100,21 @@ export async function GET(req: NextRequest) {
       );
       const wowheadMap = new Map(fetchEntries);
 
-      // Enrich equipped items with fetched iLvl
+      // Wowhead inventory slot ID 23 = Held In Off-Hand (not enchantable), 14 = Shield (enchantable)
+      const WOWHEAD_SLOT_TYPE: Record<number, string> = {
+        14: "SHIELD",
+        23: "HOLDABLE",
+      };
+
+      // Enrich equipped items with fetched iLvl and inventory_type
       const enrichedItems = equippedItems.map((item) => {
         const wh = item.item?.id ? wowheadMap.get(item.item.id) : null;
-        if (wh?.level) {
-          return { ...item, level: { value: wh.level, display_string: `${wh.level}` } };
-        }
-        return item;
+        const inventoryType = wh?.inventorySlotId ? WOWHEAD_SLOT_TYPE[wh.inventorySlotId] : undefined;
+        return {
+          ...item,
+          ...(wh?.level ? { level: { value: wh.level, display_string: `${wh.level}` } } : {}),
+          ...(inventoryType ? { inventory_type: { type: inventoryType } } : {}),
+        };
       });
 
       enrichedEquipment = { ...enrichedEquipment, equipped_items: enrichedItems };

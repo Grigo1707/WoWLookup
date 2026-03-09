@@ -5,6 +5,7 @@ export interface WowheadItemData {
   level: number;
   hitRating: number;
   spellHitRating: number;
+  inventorySlotId: number; // Wowhead inventory slot ID (e.g. 23 = Held In Off-Hand, 14 = Shield)
 }
 
 export interface CharacterHitStats {
@@ -55,11 +56,13 @@ export async function fetchWowheadItem(
     const levelMatch = xml.match(/<level>(\d+)<\/level>/);
     const hitMatch = xml.match(/\+(\d+)\s+Hit Rating/i);
     const spellHitMatch = xml.match(/\+(\d+)\s+Spell Hit Rating/i);
+    const inventorySlotMatch = xml.match(/<inventorySlot id="(\d+)">/);
 
     const data: WowheadItemData = {
       level: levelMatch ? parseInt(levelMatch[1], 10) : 0,
       hitRating: hitMatch ? parseInt(hitMatch[1], 10) : 0,
       spellHitRating: spellHitMatch ? parseInt(spellHitMatch[1], 10) : 0,
+      inventorySlotId: inventorySlotMatch ? parseInt(inventorySlotMatch[1], 10) : 0,
     };
 
     itemCache.set(cacheKey, data);

@@ -135,6 +135,8 @@ export async function GET(req: NextRequest) {
           totalSpellHit,
           meleeHitCap: caps.melee,
           spellHitCap: caps.spell,
+          meleeHitCapPct: caps.meleePct,
+          spellHitCapPct: caps.spellPct,
         };
       }
     }

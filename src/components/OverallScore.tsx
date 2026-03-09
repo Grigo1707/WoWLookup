@@ -68,20 +68,21 @@ function RatingCard({
   );
 }
 
-function HitBar({ label, current, cap }: { label: string; current: number; cap: number }) {
+function HitBar({ label, current, cap, capPct }: { label: string; current: number; cap: number; capPct: number }) {
   const reached = current >= cap;
-  const pct = Math.min(100, Math.round((current / cap) * 100));
+  const fillPct = Math.min(100, (current / cap) * 100);
+  const currentPct = cap > 0 ? (current / cap) * capPct : 0;
   const color = reached ? "#1eff00" : current >= cap * 0.8 ? "#ff8800" : "#ff4444";
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
         <span className="text-gray-400">{label}</span>
         <span style={{ color }} className="font-bold">
-          {current} / {cap}{reached ? " ✓" : ""}
+          {currentPct.toFixed(2).replace(".", ",")}% / {capPct}%{reached ? " ✓" : ""}
         </span>
       </div>
       <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${fillPct}%`, backgroundColor: color }} />
       </div>
     </div>
   );
@@ -222,12 +223,14 @@ export default function OverallScore({ summary, wclData, realmType = "retail", e
             label="Nahkampf"
             current={characterStats.totalHit}
             cap={characterStats.meleeHitCap}
+            capPct={characterStats.meleeHitCapPct}
           />
           {characterStats.spellHitCap > 0 && (
             <HitBar
               label="Zauber"
               current={characterStats.totalSpellHit}
               cap={characterStats.spellHitCap}
+              capPct={characterStats.spellHitCapPct}
             />
           )}
         </div>

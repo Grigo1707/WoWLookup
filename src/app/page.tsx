@@ -13,6 +13,7 @@ interface CharacterData {
   summary: import("@/lib/blizzard").CharacterSummary | null;
   equipment: import("@/lib/blizzard").CharacterEquipment | null;
   specializations: import("@/lib/blizzard").CharacterSpecializations | null;
+  talentTree: import("@/lib/classicarmory").TBCTalentTree | null;
   wclData: import("@/lib/warcraftlogs").WclCharacterData | null;
   errors: Record<string, string | null>;
 }
@@ -95,12 +96,12 @@ export default function HomePage() {
         {data && data.summary && (
           <div className="mt-8 space-y-4">
             <CharacterHeader summary={data.summary} wclData={data.wclData} />
-            <OverallScore summary={data.summary} wclData={data.wclData} />
+            <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {data.equipment && <EquipmentPanel equipment={data.equipment} />}
-              {data.specializations ? (
-                <TalentsPanel specializations={data.specializations} />
+              {(data.specializations || data.talentTree) ? (
+                <TalentsPanel specializations={data.specializations} talentTree={data.talentTree ?? null} />
               ) : (
                 <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-5">
                   <h2 className="text-amber-400 font-bold text-base uppercase tracking-wider mb-4">Talente</h2>

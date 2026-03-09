@@ -2,13 +2,32 @@ import type { CharacterSummary, CharacterEquipment, CharacterSpecializations } f
 
 const BASE_URL = "https://classic-armory.org/api/v1";
 
-// Maps our realm type to the classic-armory "flavor" parameter
 const REALM_TYPE_TO_FLAVOR: Record<string, string> = {
   "classic-tbc": "tbc-anniversary",
   "classic-wotlk": "wotlk-anniversary",
   "classic-cata": "cata",
   "classic-era": "classic",
 };
+
+// TBC/Classic tree-style talent structures
+export interface TBCTalentNode {
+  id: number;
+  row: number;
+  col: number;
+  maxRank: number;
+  currentRank: number;
+  spellId: number;
+}
+
+export interface TBCTalentTab {
+  name: string;
+  totalPoints: number;
+  nodes: TBCTalentNode[];
+}
+
+export interface TBCTalentTree {
+  tabs: TBCTalentTab[];
+}
 
 interface ClassicArmoryCharacter {
   name: string;
@@ -87,6 +106,7 @@ export async function fetchClassicArmoryCharacterSummary(
     last_login_timestamp: 0,
     average_item_level: data.item_level,
     equipped_item_level: data.item_level,
+    avatar: data.avatar,
   };
 }
 
@@ -106,7 +126,6 @@ export async function fetchClassicArmoryEquipment(
       type: (item.quality_type || "common").toUpperCase(),
       name: item.quality_type || "Common",
     },
-    // TBC Classic items have no item level in the API
     level: { value: undefined as unknown as number, display_string: "" },
     name: item.name,
     enchantments: item.enchant_display?.map((s) => ({ display_string: s })),
@@ -134,7 +153,6 @@ export async function fetchClassicArmorySpecializations(
     const body = { ...buildBody(region, realmSlug, characterName, realmType), class_id: classId };
     const data = await post<{ talents: { tree: { talentRanks: Record<string, { id: number; rank: number; spellId: number }> } } }>("/character/talents", body);
 
-    // TBC has tree-style talents – return a minimal structure
     const talentRanks = data.talents?.tree?.talentRanks || {};
     const talents = Object.values(talentRanks).map((t) => ({
       talent: { id: t.id, name: String(t.id), spell: { id: t.spellId, name: String(t.spellId) } },
@@ -148,6 +166,72 @@ export async function fetchClassicArmorySpecializations(
       specializations: [{ specialization: { id: 0, name: "TBC" }, talents }],
       active_specialization: { id: 0, name: "" },
     };
+  } catch {
+    return null;
+  }
+}
+
+interface RawTalentNode {
+  id: number;
+  row: number;
+  col: number;
+  ranks: number[];
+  requires?: Array<{ id: number; qty: number }>;
+}
+
+interface RawTalentTree {
+  name: string;
+  talents: RawTalentNode[][];
+}
+
+interface TalentsResponse {
+  talents: {
+    tree: {
+      talentTrees: RawTalentTree[];
+      talentRanks: Record<string, { id: number; rank: number; spellId: number }>;
+    };
+  };
+}
+
+export async function fetchClassicArmoryTalentTree(
+  region: string,
+  realmSlug: string,
+  characterName: string,
+  realmType: string,
+  classId: number
+): Promise<TBCTalentTree | null> {
+  try {
+    const body = { ...buildBody(region, realmSlug, characterName, realmType), class_id: classId };
+    const data = await post<TalentsResponse>("/character/talents", body);
+
+    const rawTree = data.talents?.tree;
+    if (!rawTree) return null;
+
+    const talentRanks = rawTree.talentRanks || {};
+    const talentTrees = rawTree.talentTrees || [];
+
+    const tabs: TBCTalentTab[] = talentTrees.map((tree) => {
+      const nodes: TBCTalentNode[] = [];
+      let totalPoints = 0;
+
+      for (let row = 0; row < (tree.talents?.length || 0); row++) {
+        for (let col = 0; col < (tree.talents[row]?.length || 0); col++) {
+          const t = tree.talents[row][col];
+          if (!t || t.id === 0) continue;
+
+          const invested = talentRanks[String(t.id)];
+          const currentRank = invested?.rank || 0;
+          const spellId = invested?.spellId || t.ranks?.[0] || 0;
+
+          totalPoints += currentRank;
+          nodes.push({ id: t.id, row, col, maxRank: t.ranks?.length || 1, currentRank, spellId });
+        }
+      }
+
+      return { name: tree.name, totalPoints, nodes };
+    });
+
+    return { tabs };
   } catch {
     return null;
   }

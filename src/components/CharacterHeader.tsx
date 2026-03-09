@@ -37,12 +37,22 @@ export default function CharacterHeader({ summary, wclData }: Props) {
   return (
     <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-6 shadow-2xl">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        {/* Avatar placeholder */}
+        {/* Avatar */}
         <div
-          className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-bold border-2 flex-shrink-0"
-          style={{ borderColor: classColor, color: classColor, backgroundColor: `${classColor}15` }}
+          className="w-16 h-16 rounded-xl border-2 flex-shrink-0 overflow-hidden"
+          style={{ borderColor: classColor }}
         >
-          {summary.name.charAt(0).toUpperCase()}
+          {summary.avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={summary.avatar} alt={summary.name} className="w-full h-full object-cover" />
+          ) : (
+            <div
+              className="w-full h-full flex items-center justify-center text-2xl font-bold"
+              style={{ color: classColor, backgroundColor: `${classColor}15` }}
+            >
+              {summary.name.charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">

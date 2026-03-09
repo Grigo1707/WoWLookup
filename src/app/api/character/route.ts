@@ -7,7 +7,7 @@ import {
 import {
   fetchClassicArmoryCharacterSummary,
   fetchClassicArmoryEquipment,
-  fetchClassicArmorySpecializations,
+  fetchClassicArmoryTalentTree,
 } from "@/lib/classicarmory";
 import { fetchWclCharacterData } from "@/lib/warcraftlogs";
 
@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
     if (useClassicArmory) {
       summaryPromise = fetchClassicArmoryCharacterSummary(region, realm, character, realmType);
       equipmentPromise = fetchClassicArmoryEquipment(region, realm, character, realmType);
-      // class_id is fetched after summary resolves – we'll handle below
       specializationsPromise = Promise.resolve(null);
     } else {
       summaryPromise = fetchCharacterSummary(region, realm, character, namespace);
@@ -48,25 +47,25 @@ export async function GET(req: NextRequest) {
       fetchWclCharacterData(character, realm, region),
     ]);
 
-    // For classic-armory, fetch talents now that we have the class_id from summary
-    let finalSpecializations = specializations;
+    // For classic-armory, fetch the full talent tree using the class_id from summary
+    let talentTree = null;
     if (useClassicArmory && summary.status === "fulfilled" && summary.value) {
       const classId = summary.value.character_class?.id || 0;
       if (classId > 0) {
-        const talentsResult = await fetchClassicArmorySpecializations(region, realm, character, realmType, classId);
-        finalSpecializations = { status: "fulfilled", value: talentsResult } as typeof finalSpecializations;
+        talentTree = await fetchClassicArmoryTalentTree(region, realm, character, realmType, classId);
       }
     }
 
     const result = {
       summary: summary.status === "fulfilled" ? summary.value : null,
       equipment: equipment.status === "fulfilled" ? equipment.value : null,
-      specializations: finalSpecializations.status === "fulfilled" ? finalSpecializations.value : null,
+      specializations: specializations.status === "fulfilled" ? specializations.value : null,
+      talentTree,
       wclData: wclData.status === "fulfilled" ? wclData.value : null,
       errors: {
         summary: summary.status === "rejected" ? summary.reason?.message : null,
         equipment: equipment.status === "rejected" ? equipment.reason?.message : null,
-        specializations: finalSpecializations.status === "rejected" ? (finalSpecializations as PromiseRejectedResult).reason?.message : null,
+        specializations: specializations.status === "rejected" ? specializations.reason?.message : null,
         wclData: wclData.status === "rejected" ? wclData.reason?.message : null,
       },
     };

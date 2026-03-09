@@ -102,6 +102,7 @@ export interface CharacterSummary {
   last_login_timestamp: number;
   average_item_level: number;
   equipped_item_level: number;
+  avatar?: string;
 }
 
 export async function fetchCharacterSummary(

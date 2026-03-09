@@ -78,7 +78,7 @@ function HitBar({ label, current, cap, capPct }: { label: string; current: numbe
       <div className="flex justify-between text-xs mb-1">
         <span className="text-gray-400">{label}</span>
         <span style={{ color }} className="font-bold">
-          {currentPct.toFixed(2).replace(".", ",")}% / {capPct}%{reached ? " ✓" : ""}
+          {current} ({currentPct.toFixed(2).replace(".", ",")}%) / {capPct}%{reached ? " ✓" : ""}
         </span>
       </div>
       <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">

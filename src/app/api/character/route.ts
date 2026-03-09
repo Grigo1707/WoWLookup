@@ -111,27 +111,29 @@ export async function GET(req: NextRequest) {
 
       enrichedEquipment = { ...enrichedEquipment, equipped_items: enrichedItems };
 
-      // Aggregate hit/spell hit from gear and gems
-      let totalHit = 0;
+      // Aggregate hit/spell hit from gear and gems.
+      // "Hit Rating" in TBC/WotLK/Cata contributes to both melee AND spell hit.
+      // "Spell Hit Rating" is an additional spell-only stat (rare/vintage items).
+      let totalMeleeHit = 0;
       let totalSpellHit = 0;
       for (const item of enrichedItems) {
         const whItem = item.item?.id ? wowheadMap.get(item.item.id) : null;
         if (whItem) {
-          totalHit += whItem.hitRating;
-          totalSpellHit += whItem.spellHitRating;
+          totalMeleeHit += whItem.hitRating;
+          totalSpellHit += whItem.hitRating + whItem.spellHitRating;
         }
         for (const gem of item.gems ?? []) {
           const whGem = gem.item?.id ? wowheadMap.get(gem.item.id) : null;
           if (whGem) {
-            totalHit += whGem.hitRating;
-            totalSpellHit += whGem.spellHitRating;
+            totalMeleeHit += whGem.hitRating;
+            totalSpellHit += whGem.hitRating + whGem.spellHitRating;
           }
         }
       }
 
       if (caps.melee > 0 || caps.spell > 0) {
         characterStats = {
-          totalHit,
+          totalHit: totalMeleeHit,
           totalSpellHit,
           meleeHitCap: caps.melee,
           spellHitCap: caps.spell,

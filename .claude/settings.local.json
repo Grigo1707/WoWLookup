@@ -32,7 +32,8 @@
       "Bash(cmd /c \"taskkill /F /IM node.exe 2>&1\")",
       "Bash(tail -c 2000 ~/.claude/projects/c--WoWLookup/*.jsonl)",
       "Bash(node --check .claude/scripts/requirements-agent.mjs)",
-      "Bash(node --check .claude/scripts/auto-commit.mjs)"
+      "Bash(node --check .claude/scripts/auto-commit.mjs)",
+      "WebSearch"
     ]
   },
   "hooks": {

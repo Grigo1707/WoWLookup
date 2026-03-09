@@ -81,13 +81,14 @@ function getIlvlScore(ilvl: number, realmType: string): number {
   return Math.min(100, Math.max(0, Math.round(((ilvl - min) / (max - min)) * 100)));
 }
 
-function getOverallRating(ilvlScore: number, parseScore: number | null): { score: number; label: string; color: string } {
-  const wclWeight = 0.6;
-  const ilvlWeight = 0.4;
-
+function getOverallRating(ilvlScore: number, parseScore: number | null, gearQuality: number | null): { score: number; label: string; color: string } {
   let combined: number;
-  if (parseScore !== null) {
-    combined = Math.round(parseScore * wclWeight + ilvlScore * ilvlWeight);
+  if (parseScore !== null && gearQuality !== null) {
+    combined = Math.round(parseScore * 0.5 + ilvlScore * 0.3 + gearQuality * 0.2);
+  } else if (parseScore !== null) {
+    combined = Math.round(parseScore * 0.6 + ilvlScore * 0.4);
+  } else if (gearQuality !== null) {
+    combined = Math.round(ilvlScore * 0.6 + gearQuality * 0.4);
   } else {
     combined = ilvlScore;
   }
@@ -102,7 +103,10 @@ function getOverallRating(ilvlScore: number, parseScore: number | null): { score
 export default function OverallScore({ summary, wclData, realmType = "retail", equipment }: Props) {
   const ilvl = summary.equipped_item_level || 0;
   const ilvlScore = getIlvlScore(ilvl, realmType || "retail");
-  const gearscore = equipment ? calculateGearscore(equipment) : null;
+  const gearscore = equipment ? calculateGearscore(equipment, realmType) : null;
+  const gearQuality = gearscore && gearscore.avgIlvl > 0
+    ? Math.round((gearscore.score / gearscore.avgIlvl) * 100)
+    : null;
 
   // Use average across all zones if available, otherwise fall back to single zone
   let bestPerf: number | null | undefined;
@@ -117,13 +121,13 @@ export default function OverallScore({ summary, wclData, realmType = "retail", e
   const parseScore = bestPerf !== undefined && bestPerf !== null ? Math.round(bestPerf) : null;
   const parseColor = parseScore !== null ? getParseColor(parseScore) : "#9d9d9d";
 
-  const overall = getOverallRating(ilvlScore, parseScore);
+  const overall = getOverallRating(ilvlScore, parseScore, gearQuality);
 
   return (
     <div className="bg-gray-900/80 backdrop-blur border border-amber-500/20 rounded-2xl p-5 shadow-xl">
       <h2 className="text-amber-400 font-bold text-base uppercase tracking-wider mb-4">Gesamtbewertung</h2>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${gearscore && gearscore.avgIlvl > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
         <RatingCard
           label="Gesamtscore"
           value={overall.score}
@@ -142,6 +146,15 @@ export default function OverallScore({ summary, wclData, realmType = "retail", e
           color={parseColor}
           description={parseScore !== null ? getParseLabel(parseScore) : "Keine Daten"}
         />
+        {gearscore && gearscore.avgIlvl > 0 && (
+          <RatingCard
+            label="Gear-Qualität"
+            value={gearQuality}
+            color={gearQuality !== null && gearQuality >= 95 ? "#1eff00" : gearQuality !== null && gearQuality >= 80 ? "#ff8800" : "#ff4444"}
+            maxValue={100}
+            description={`⌀ ${gearscore.avgIlvl} iLvl`}
+          />
+        )}
       </div>
 
       <div className="mt-4 p-3 bg-gray-800/40 rounded-lg">

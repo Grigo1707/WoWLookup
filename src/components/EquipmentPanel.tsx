@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CharacterEquipment, EquippedItem } from "@/lib/blizzard";
-import { getItemQualityColor, ENCHANTABLE_SLOTS } from "@/lib/utils";
+import { getItemQualityColor, getEnchantableSlots } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -50,9 +50,9 @@ function GemIcon({ gemId, domain }: { gemId: number; domain: string }) {
   );
 }
 
-function ItemRow({ item, slotType, domain }: { item: EquippedItem | undefined; slotType: string; domain: string }) {
+function ItemRow({ item, slotType, domain, realmType }: { item: EquippedItem | undefined; slotType: string; domain: string; realmType?: string }) {
   const color = item ? getItemQualityColor(item.quality?.type || "COMMON") : "#374151";
-  const needsEnchant = item && ENCHANTABLE_SLOTS.has(slotType) && (!item.enchantments || item.enchantments.length === 0);
+  const needsEnchant = item && getEnchantableSlots(realmType).has(slotType) && (!item.enchantments || item.enchantments.length === 0);
   const missingGems = item?.sockets ? item.sockets.filter((s: { item?: unknown }) => !s.item).length : 0;
 
   return (
@@ -137,9 +137,10 @@ function ItemRow({ item, slotType, domain }: { item: EquippedItem | undefined; s
 interface Props {
   equipment: CharacterEquipment;
   wowheadDomain: string;
+  realmType?: string;
 }
 
-export default function EquipmentPanel({ equipment, wowheadDomain }: Props) {
+export default function EquipmentPanel({ equipment, wowheadDomain, realmType }: Props) {
   // Re-initialize WoWHead tooltips after render
   useEffect(() => {
     if (typeof window !== "undefined" && window.WH?.Tooltips?.refreshLinks) {
@@ -170,7 +171,7 @@ export default function EquipmentPanel({ equipment, wowheadDomain }: Props) {
       </div>
       <div className="space-y-0">
         {SLOT_ORDER.map((slot) => (
-          <ItemRow key={slot} slotType={slot} item={itemsBySlot.get(slot)} domain={wowheadDomain} />
+          <ItemRow key={slot} slotType={slot} item={itemsBySlot.get(slot)} domain={wowheadDomain} realmType={realmType} />
         ))}
       </div>
     </div>

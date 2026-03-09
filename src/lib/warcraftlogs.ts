@@ -70,6 +70,18 @@ export interface BossRanking {
 }
 
 const CHARACTER_QUERY = `
+  query CharacterRankings($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int) {
+    characterData {
+      character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
+        name
+        classID
+        zoneRankings(zoneID: $zoneID)
+      }
+    }
+  }
+`;
+
+const CHARACTER_QUERY_WITH_METRIC = `
   query CharacterRankings($name: String!, $serverSlug: String!, $serverRegion: String!, $zoneID: Int, $metric: CharacterRankingMetricType) {
     characterData {
       character(name: $name, serverSlug: $serverSlug, serverRegion: $serverRegion) {
@@ -88,14 +100,16 @@ const WCL_ENDPOINTS = [
 
 export type WclMetric = "dps" | "hps" | "bossdps" | "tankhps";
 
-async function queryWcl(endpoint: string, token: string, variables: object): Promise<WclCharacterData | null> {
+async function queryWcl(endpoint: string, token: string, variables: object, metric?: WclMetric): Promise<WclCharacterData | null> {
+  const query = metric ? CHARACTER_QUERY_WITH_METRIC : CHARACTER_QUERY;
+  const allVariables = metric ? { ...variables, metric } : variables;
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: CHARACTER_QUERY, variables }),
+    body: JSON.stringify({ query, variables: allVariables }),
     next: { revalidate: 300 },
   });
 
@@ -121,7 +135,7 @@ export async function fetchWclCharacterData(
     let baseCharacter: WclCharacterData | null = null;
 
     for (const endpoint of WCL_ENDPOINTS) {
-      const result = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: firstZoneID, metric });
+      const result = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: firstZoneID }, metric);
       if (result) { baseCharacter = result; break; }
     }
 
@@ -133,7 +147,7 @@ export async function fetchWclCharacterData(
       const additionalResults = await Promise.all(
         additionalZoneIDs.map(async (zid) => {
           for (const endpoint of WCL_ENDPOINTS) {
-            const r = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: zid, metric });
+            const r = await queryWcl(endpoint, token, { name: characterName, serverSlug, serverRegion, zoneID: zid }, metric);
             if (r?.zoneRankings) return { zoneID: zid, rankings: r.zoneRankings as ZoneRankings };
           }
           return null;

@@ -217,7 +217,7 @@ function HomeContent() {
             <OverallScore summary={data.summary} wclData={data.wclData} realmType={realmType} equipment={data.equipment} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {data.equipment && <EquipmentPanel equipment={data.equipment} wowheadDomain={wowheadDomain} />}
+              {data.equipment && <EquipmentPanel equipment={data.equipment} wowheadDomain={wowheadDomain} realmType={realmType} />}
               {(data.specializations || data.talentTree) ? (
                 <TalentsPanel specializations={data.specializations} talentTree={data.talentTree ?? null} wowheadDomain={wowheadDomain} />
               ) : (

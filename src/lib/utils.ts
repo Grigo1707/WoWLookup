@@ -30,10 +30,16 @@ export function getParseColor(parse: number): string {
   return "#9d9d9d"; // Poor
 }
 
-// Slots that should have enchants in retail
-export const ENCHANTABLE_SLOTS = new Set([
-  "MAIN_HAND", "OFF_HAND", "RANGED", "BACK", "CHEST", "WRIST", "HANDS", "LEGS", "FEET", "NECK", "FINGER_1", "FINGER_2",
-]);
+// Enchantable slots per realm type
+const ENCHANTABLE_RETAIL = new Set(["MAIN_HAND", "OFF_HAND", "BACK", "CHEST", "WRIST", "HANDS", "LEGS", "FEET", "NECK", "FINGER_1", "FINGER_2"]);
+const ENCHANTABLE_CLASSIC = new Set(["MAIN_HAND", "OFF_HAND", "BACK", "CHEST", "WRIST", "HANDS", "LEGS", "FEET", "HEAD", "SHOULDER"]);
+
+export function getEnchantableSlots(realmType?: string): Set<string> {
+  return realmType?.startsWith("classic") ? ENCHANTABLE_CLASSIC : ENCHANTABLE_RETAIL;
+}
+
+/** @deprecated use getEnchantableSlots() */
+export const ENCHANTABLE_SLOTS = ENCHANTABLE_RETAIL;
 
 export interface GearscoreResult {
   score: number;
@@ -44,7 +50,8 @@ export interface GearscoreResult {
   gemPenalty: number;
 }
 
-export function calculateGearscore(equipment: CharacterEquipment): GearscoreResult {
+export function calculateGearscore(equipment: CharacterEquipment, realmType?: string): GearscoreResult {
+  const enchantableSlots = getEnchantableSlots(realmType);
   const items = equipment.equipped_items || [];
   const relevantItems = items.filter((i) => i.level?.value && i.slot?.type !== "SHIRT" && i.slot?.type !== "TABARD");
 
@@ -55,11 +62,14 @@ export function calculateGearscore(equipment: CharacterEquipment): GearscoreResu
   const missingEnchants: string[] = [];
   const missingGems: string[] = [];
 
-  for (const item of relevantItems) {
+  // For classic armory data, items have no level.value — still check enchants/gems on all items
+  const itemsForWarnings = avgIlvl === 0 ? items.filter((i) => i.slot?.type !== "SHIRT" && i.slot?.type !== "TABARD") : relevantItems;
+
+  for (const item of itemsForWarnings) {
     const slotType = item.slot?.type;
 
     // Check enchants only for enchantable slots
-    if (ENCHANTABLE_SLOTS.has(slotType)) {
+    if (enchantableSlots.has(slotType)) {
       const hasEnchant = item.enchantments && item.enchantments.length > 0;
       if (!hasEnchant) {
         missingEnchants.push(slotType);

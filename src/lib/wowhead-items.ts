@@ -54,14 +54,23 @@ export async function fetchWowheadItem(
     const xml = await res.text();
 
     const levelMatch = xml.match(/<level>(\d+)<\/level>/);
-    const hitMatch = xml.match(/\+(\d+)\s+Hit Rating/i);
-    const spellHitMatch = xml.match(/\+(\d+)\s+Spell Hit Rating/i);
     const inventorySlotMatch = xml.match(/<inventorySlot id="(\d+)">/);
+
+    // Parse jsonEquip CDATA block for hit stats (Wowhead uses mlehitrtng / splhitrtng)
+    const jsonEquipMatch = xml.match(/<jsonEquip><!\[CDATA\[([\s\S]*?)\]\]><\/jsonEquip>/);
+    const jsonEquip = jsonEquipMatch ? `{${jsonEquipMatch[1]}}` : "{}";
+    let equip: Record<string, number> = {};
+    try { equip = JSON.parse(jsonEquip); } catch { /* ignore malformed */ }
+
+    // mlehitrtng = generic "Hit Rating" (melee + spell in TBC/WotLK/Cata)
+    // splhitrtng = "Spell Hit Rating" (spell only)
+    const mleHit = equip["mlehitrtng"] ?? 0;
+    const splHit = equip["splhitrtng"] ?? 0;
 
     const data: WowheadItemData = {
       level: levelMatch ? parseInt(levelMatch[1], 10) : 0,
-      hitRating: hitMatch ? parseInt(hitMatch[1], 10) : 0,
-      spellHitRating: spellHitMatch ? parseInt(spellHitMatch[1], 10) : 0,
+      hitRating: mleHit,
+      spellHitRating: splHit,
       inventorySlotId: inventorySlotMatch ? parseInt(inventorySlotMatch[1], 10) : 0,
     };
 

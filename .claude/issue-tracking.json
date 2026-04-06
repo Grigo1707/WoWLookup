@@ -3,5 +3,10 @@
     "issueNumber": 17,
     "prompt": "Ich will ein kleines Indie Game für Windows erstellen. In dem Indie Game soll man gegen seine Freund",
     "url": "https://github.com/Grigo1707/WoWLookup/issues/17"
+  },
+  "d8d3abe1-0695-46da-b099-9f8f4bff57b9": {
+    "issueNumber": 18,
+    "prompt": "Failed to load resource: the server responded with a status of 400 (Bad Request) bei  api/auth/regis",
+    "url": "https://github.com/Grigo1707/WoWLookup/issues/18"
   }
 }

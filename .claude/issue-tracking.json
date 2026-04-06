@@ -8,5 +8,9 @@
     "issueNumber": 18,
     "prompt": "Failed to load resource: the server responded with a status of 400 (Bad Request) bei  api/auth/regis",
     "url": "https://github.com/Grigo1707/WoWLookup/issues/18"
+  },
+  "5275bcd0-c182-404a-8cd1-d11212da55fb": {
+    "issueNumber": 18,
+    "prompt": "routen hinzufügen und danach neu starten"
   }
 }
